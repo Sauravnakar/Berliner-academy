@@ -1,60 +1,88 @@
 import streamlit as st
-from deep_translator import GoogleTranslator
 
-# 1. Setup the Page
-st.set_page_config(page_title="The English Academy", page_icon="🦉")
+# 1. Setup the Page Layout
+st.set_page_config(page_title="Boss Academy", page_icon="🦉", layout="centered")
 
-st.title("🦉 Saurav's English Academy")
-st.write("Forget the green owl. You're learning from the Boss now.")
+# 2. Initialize the App's "Memory" (Session State)
+# This prevents the app from resetting every time she clicks a button
+if 'question_index' not in st.session_state:
+    st.session_state.question_index = 0
+    st.session_state.score = 0
+
+# 3. The Quiz Data (German to English)
+questions = [
+    {
+        "german": "Du bist sehr anstrengend.", 
+        "options": ["You are very smart.", "You are very exhausting."], 
+        "answer": "You are very exhausting."
+    },
+    {
+        "german": "Ich habe keine Ahnung.", 
+        "options": ["I have no idea.", "I am the best player here."], 
+        "answer": "I have no idea."
+    },
+    {
+        "german": "Wer ist der Boss?", 
+        "options": ["Who is the boss? (Obviously Saurav)", "Where is my coffee?"], 
+        "answer": "Who is the boss? (Obviously Saurav)"
+    }
+]
+
+# 4. The App UI
+st.title("🦉 The Boss-Level Academy")
+st.write("Let's see if your brain is lagging today. Choose the correct English translation.")
 
 st.divider()
 
-# 2. The Real Translator (German -> English)
-st.header("🌍 The Real Translator")
-st.write("Type your German here, and let my algorithm do the heavy lifting.")
-
-text_to_translate = st.text_area("Enter German text:")
-
-if st.button("Translate to English"):
-    if text_to_translate:
-        translated = GoogleTranslator(source='de', target='en').translate(text_to_translate)
-        st.success(f"**Perfect English:** {translated}")
-    else:
-        st.warning("You have to actually type something first, Boss.")
-
-st.divider()
-
-# 3. The Duolingo-Style Interactive Quiz
-st.header("🎯 The Daily Pop Quiz")
-st.write("Let's see if you can actually pass this class. Choose the correct translation.")
-
-q1 = st.radio("1. How do you say 'Du bist sehr anstrengend' in English?", 
-              ("You are very smart.", "You are very exhausting.", "You are very funny.", "I am hungry."))
-
-q2 = st.radio("2. How do you say 'Ich bin der Boss' in English?", 
-              ("I am the boss.", "You are the boss.", "We are friends.", "I need shisha."))
-
-if st.button("Submit Answers"):
-    score = 0
+# 5. The Interactive Game Loop
+# If she hasn't finished all the questions yet:
+if st.session_state.question_index < len(questions):
     
-    # Grade Q1
-    if q1 == "You are very exhausting.":
-        st.success("✅ Question 1: Correct! (And highly accurate).")
-        score += 1
-    else:
-        st.error("❌ Question 1: Wrong. You need to study more.")
-        
-    # Grade Q2
-    if q2 == "I am the boss.":
-        st.success("✅ Question 2: Correct! Remember who is in charge.")
-        score += 1
-    else:
-        st.error("❌ Question 2: Wrong. (Hint: It's me).")
-        
-    # Final Score
-    if score == 2:
+    # Calculate and show the live progress bar
+    progress = st.session_state.question_index / len(questions)
+    st.progress(progress)
+    
+    # Load the current question
+    current_q = questions[st.session_state.question_index]
+    
+    st.subheader(f"Translate this: **{current_q['german']}**")
+    st.write("") # Just adds a little blank space
+    
+    # Create two big, side-by-side buttons like a mobile app
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button(current_q['options'][0], use_container_width=True):
+            if current_q['options'][0] == current_q['answer']:
+                st.session_state.score += 1
+            st.session_state.question_index += 1
+            st.rerun() # This instantly refreshes the screen to the next question
+            
+    with col2:
+        if st.button(current_q['options'][1], use_container_width=True):
+            if current_q['options'][1] == current_q['answer']:
+                st.session_state.score += 1
+            st.session_state.question_index += 1
+            st.rerun()
+
+# 6. The Final Results Screen
+else:
+    st.progress(1.0)
+    st.header("🎓 Exam Finished")
+    st.subheader(f"Your Final Score: {st.session_state.score} / {len(questions)}")
+    
+    if st.session_state.score == len(questions):
         st.balloons()
-        st.success("🎉 Perfect Score! You are officially promoted from Intern.")
+        st.success("Perfect score! You are officially promoted from Intern.")
+    elif st.session_state.score > 0:
+        st.warning("You passed, but barely. We need to work on your skills.")
     else:
-        st.warning(f"You got {score}/2. Try again before I fail you.")
-    st.info(f"**What she actually means:** {pubg_phrases[phrase_choice]}")
+        st.error("Zero points. Absolutely terrible. Back to the lobby.")
+        
+    st.divider()
+    
+    # Let her restart the game
+    if st.button("Retake the Exam", use_container_width=True):
+        st.session_state.question_index = 0
+        st.session_state.score = 0
+        st.rerun()
